@@ -22,6 +22,7 @@ type HelmChartSpec struct {
 	Version         string                        `json:"version,omitempty"`
 	Repo            string                        `json:"repo,omitempty"`
 	RepoCA          string                        `json:"repoCA,omitempty"`
+	RepoSecret      string                        `json:"RepoSecret"`
 	Set             map[string]intstr.IntOrString `json:"set,omitempty"`
 	ValuesContent   string                        `json:"valuesContent,omitempty"`
 	HelmVersion     string                        `json:"helmVersion,omitempty"`
