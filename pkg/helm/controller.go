@@ -229,6 +229,31 @@ func (c *Controller) OnConfChange(key string, conf *helmv1.HelmChartConfig) (*he
 	return conf, nil
 }
 
+// repoCredentials returns *EnvVarSource resource definitions that will be passed as pod environment variables
+// for repo authentication
+func repoCredentials(chart *helmv1.HelmChart) (user, passwd *core.EnvVarSource) {
+	if chart.Spec.RepoSecret == "" {
+		return
+	}
+	user = &core.EnvVarSource{
+		SecretKeyRef: &core.SecretKeySelector{
+			Key: "username",
+			LocalObjectReference: core.LocalObjectReference{
+				Name: chart.Spec.RepoSecret,
+			},
+		},
+	}
+	passwd = &core.EnvVarSource{
+		SecretKeyRef: &core.SecretKeySelector{
+			Key: "password",
+			LocalObjectReference: core.LocalObjectReference{
+				Name: chart.Spec.RepoSecret,
+			},
+		},
+	}
+	return
+}
+
 func job(chart *helmv1.HelmChart) (*batch.Job, *core.ConfigMap, *core.ConfigMap) {
 	jobImage := strings.TrimSpace(chart.Spec.JobImage)
 	if jobImage == "" {
@@ -244,6 +269,8 @@ func job(chart *helmv1.HelmChart) (*batch.Job, *core.ConfigMap, *core.ConfigMap)
 	if len(chart.Spec.TargetNamespace) != 0 {
 		targetNamespace = chart.Spec.TargetNamespace
 	}
+
+	repoUser, repoPasswd := repoCredentials(chart)
 
 	job := &batch.Job{
 		TypeMeta: meta.TypeMeta{
@@ -286,6 +313,14 @@ func job(chart *helmv1.HelmChart) (*batch.Job, *core.ConfigMap, *core.ConfigMap)
 								{
 									Name:  "REPO",
 									Value: chart.Spec.Repo,
+								},
+								{
+									Name:      "REPO_USERNAME",
+									ValueFrom: repoUser,
+								},
+								{
+									Name:      "REPO_PASSWORD",
+									ValueFrom: repoPasswd,
 								},
 								{
 									Name:  "HELM_DRIVER",
